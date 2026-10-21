@@ -1,0 +1,13 @@
+diff --git a/purchasing/filters.py b/purchasing/filters.py
+index 9131dd4..3e24d0d 100644
+--- a/purchasing/filters.py
++++ b/purchasing/filters.py
+@@ -14,7 +14,7 @@ def filter_suppliers(queryset, params):
+     active = active.strip().lower()
+     if active not in BOOLEAN_VALUES:
+         raise ValidationError({"active": ["Use true or false."]})
+-    return queryset.filter(is_active=bool(active))
++    return queryset.filter(is_active=active == "true")
+ 
+ 
+ def filter_purchase_orders(queryset, params):

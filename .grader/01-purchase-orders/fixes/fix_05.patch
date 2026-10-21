@@ -1,0 +1,12 @@
+diff --git a/purchasing/serializers.py b/purchasing/serializers.py
+index af28b3f..b6aa8f8 100644
+--- a/purchasing/serializers.py
++++ b/purchasing/serializers.py
+@@ -112,6 +112,7 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
+             "updated_at",
+         ]
+         read_only_fields = [
++            "status",
+             "submitted_at",
+             "approved_by",
+             "approved_at",

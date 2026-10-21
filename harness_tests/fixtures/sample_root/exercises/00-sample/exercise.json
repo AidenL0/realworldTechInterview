@@ -1,0 +1,7 @@
+{
+  "id": "00",
+  "title": "Sample calculator",
+  "time_limit_minutes": 30,
+  "setup_commands": [],
+  "check_command": ["-c", "import calc"]
+}

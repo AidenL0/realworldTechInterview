@@ -1,0 +1,13 @@
+diff --git a/purchasing/services.py b/purchasing/services.py
+index b04de21..8364caf 100644
+--- a/purchasing/services.py
++++ b/purchasing/services.py
+@@ -24,7 +24,7 @@ def to_money(amount):
+ def line_total(line):
+     """Price of one line after its discount."""
+     gross = line.unit_price * line.quantity
+-    discount = line.unit_price * line.discount_percent / 100
++    discount = gross * line.discount_percent / 100
+     return to_money(gross - discount)
+ 
+ 

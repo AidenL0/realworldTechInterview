@@ -1,0 +1,9 @@
+diff --git a/calc.py b/calc.py
+--- a/calc.py
++++ b/calc.py
+@@ -9,4 +9,4 @@ def average(values):
+ 
+ 
+ def clamp(value, low, high):
+-    return max(low, min(value, low))
++    return max(low, min(value, high))

@@ -1,0 +1,13 @@
+diff --git a/purchasing/views.py b/purchasing/views.py
+index 5681eed..d25c85b 100644
+--- a/purchasing/views.py
++++ b/purchasing/views.py
+@@ -72,7 +72,7 @@ class PurchaseOrderViewSet(
+         serializer = self.get_serializer(data=request.data)
+         serializer.is_valid(raise_exception=True)
+         line = services.add_line(order, **serializer.validated_data)
+-        return Response(self.get_serializer(line).data)
++        return Response(self.get_serializer(line).data, status=status.HTTP_201_CREATED)
+ 
+     @action(detail=True, methods=["post"])
+     def submit(self, request, pk=None):

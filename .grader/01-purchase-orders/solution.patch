@@ -1,0 +1,124 @@
+diff --git a/purchasing/filters.py b/purchasing/filters.py
+index 9131dd4..3e24d0d 100644
+--- a/purchasing/filters.py
++++ b/purchasing/filters.py
+@@ -14,7 +14,7 @@ def filter_suppliers(queryset, params):
+     active = active.strip().lower()
+     if active not in BOOLEAN_VALUES:
+         raise ValidationError({"active": ["Use true or false."]})
+-    return queryset.filter(is_active=bool(active))
++    return queryset.filter(is_active=active == "true")
+ 
+ 
+ def filter_purchase_orders(queryset, params):
+diff --git a/purchasing/serializers.py b/purchasing/serializers.py
+index af28b3f..ce18c4d 100644
+--- a/purchasing/serializers.py
++++ b/purchasing/serializers.py
+@@ -112,6 +112,7 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
+             "updated_at",
+         ]
+         read_only_fields = [
++            "status",
+             "submitted_at",
+             "approved_by",
+             "approved_at",
+@@ -138,3 +139,9 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
+         if value < timezone.localdate():
+             raise serializers.ValidationError("The date can't be in the past.")
+         return value
++
++
++class ApproveSerializer(serializers.Serializer):
++    """Request body for approving an order."""
++
++    approver = serializers.CharField(max_length=80)
+diff --git a/purchasing/services.py b/purchasing/services.py
+index 0dadba9..1ace0ff 100644
+--- a/purchasing/services.py
++++ b/purchasing/services.py
+@@ -24,7 +24,7 @@ def to_money(amount):
+ def line_total(line):
+     """Price of one line after its discount."""
+     gross = line.unit_price * line.quantity
+-    discount = line.unit_price * line.discount_percent / 100
++    discount = gross * line.discount_percent / 100
+     return to_money(gross - discount)
+ 
+ 
+@@ -68,7 +68,7 @@ def ensure_draft(order, message):
+ @transaction.atomic
+ def submit_order(order):
+     ensure_draft(order, "Only draft orders can be submitted.")
+-    if not order.lines.exists:
++    if not order.lines.exists():
+         raise ValidationError({"lines": ["Add at least one line before submitting the order."]})
+     order.status = PurchaseOrder.Status.SUBMITTED
+     order.submitted_at = timezone.now()
+@@ -89,3 +89,19 @@ def add_line(order, *, sku, description, quantity, unit_price, discount_percent=
+     )
+     order.save(update_fields=["updated_at"])
+     return line
++
++
++def same_person(first, second):
++    return first.strip().casefold() == second.strip().casefold()
++
++
++@transaction.atomic
++def approve_order(order, approver):
++    ensure_status(order, PurchaseOrder.Status.SUBMITTED, "Only submitted orders can be approved.")
++    if same_person(approver, order.requested_by):
++        raise ValidationError({"approver": ["Orders can't be approved by the person who requested them."]})
++    order.status = PurchaseOrder.Status.APPROVED
++    order.approved_by = approver.strip()
++    order.approved_at = timezone.now()
++    order.save(update_fields=["status", "approved_by", "approved_at", "updated_at"])
++    return order
+diff --git a/purchasing/views.py b/purchasing/views.py
+index aafb109..d1b09d6 100644
+--- a/purchasing/views.py
++++ b/purchasing/views.py
+@@ -5,6 +5,7 @@ from rest_framework.response import Response
+ from . import filters, services
+ from .models import PurchaseOrder, Supplier
+ from .serializers import (
++    ApproveSerializer,
+     OrderLineSerializer,
+     PurchaseOrderListSerializer,
+     PurchaseOrderSerializer,
+@@ -57,8 +58,8 @@ class PurchaseOrderViewSet(
+         return self.serializer_class
+ 
+     def perform_update(self, serializer):
+-        order = serializer.save()
+-        services.ensure_draft(order, "Only draft orders can be edited.")
++        services.ensure_draft(serializer.instance, "Only draft orders can be edited.")
++        serializer.save()
+ 
+     def order_response(self, order):
+         """The full, freshly loaded representation of an order."""
+@@ -72,7 +73,7 @@ class PurchaseOrderViewSet(
+         serializer = self.get_serializer(data=request.data)
+         serializer.is_valid(raise_exception=True)
+         line = services.add_line(order, **serializer.validated_data)
+-        return Response(self.get_serializer(line).data)
++        return Response(self.get_serializer(line).data, status=status.HTTP_201_CREATED)
+ 
+     @action(detail=True, methods=["post"])
+     def submit(self, request, pk=None):
+@@ -81,8 +82,11 @@ class PurchaseOrderViewSet(
+         services.submit_order(order)
+         return self.order_response(order)
+ 
+-    @action(detail=True, methods=["post"])
++    @action(detail=True, methods=["post"], serializer_class=ApproveSerializer)
+     def approve(self, request, pk=None):
+         """Approve a submitted order."""
+-        # TODO: Implement this endpoint. See "Feature to implement" in README.md.
+-        return Response({"detail": "Not implemented."}, status=status.HTTP_501_NOT_IMPLEMENTED)
++        order = self.get_object()
++        serializer = self.get_serializer(data=request.data)
++        serializer.is_valid(raise_exception=True)
++        services.approve_order(order, serializer.validated_data["approver"])
++        return self.order_response(order)

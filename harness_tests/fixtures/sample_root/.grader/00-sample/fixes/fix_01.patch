@@ -1,0 +1,12 @@
+diff --git a/calc.py b/calc.py
+--- a/calc.py
++++ b/calc.py
+@@ -5,7 +5,7 @@ def add(a, b):
+ def average(values):
+     if not values:
+         return 0.0
+-    return sum(values) / (len(values) - 1)
++    return sum(values) / len(values)
+ 
+ 
+ def clamp(value, low, high):

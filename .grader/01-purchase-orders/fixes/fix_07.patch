@@ -1,0 +1,15 @@
+diff --git a/purchasing/views.py b/purchasing/views.py
+index aafb109..5681eed 100644
+--- a/purchasing/views.py
++++ b/purchasing/views.py
+@@ -57,8 +57,8 @@ class PurchaseOrderViewSet(
+         return self.serializer_class
+ 
+     def perform_update(self, serializer):
+-        order = serializer.save()
+-        services.ensure_draft(order, "Only draft orders can be edited.")
++        services.ensure_draft(serializer.instance, "Only draft orders can be edited.")
++        serializer.save()
+ 
+     def order_response(self, order):
+         """The full, freshly loaded representation of an order."""

@@ -1,0 +1,13 @@
+diff --git a/purchasing/services.py b/purchasing/services.py
+index 0dadba9..b04de21 100644
+--- a/purchasing/services.py
++++ b/purchasing/services.py
+@@ -68,7 +68,7 @@ def ensure_draft(order, message):
+ @transaction.atomic
+ def submit_order(order):
+     ensure_draft(order, "Only draft orders can be submitted.")
+-    if not order.lines.exists:
++    if not order.lines.exists():
+         raise ValidationError({"lines": ["Add at least one line before submitting the order."]})
+     order.status = PurchaseOrder.Status.SUBMITTED
+     order.submitted_at = timezone.now()
